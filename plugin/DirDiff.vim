@@ -505,8 +505,12 @@ function! <SID>CloseDiffWindows()
         " Ask the user to save if buffer is modified
         call <SID>AskIfModified()
         bd!
-        call <SID>AskIfModified()
-        bd!
+        " User may just have one window opened, we may not need to close
+        " the second diff window, but do it for fugitive windows
+        if (&diff || b:git_dir !=# '')
+            call <SID>AskIfModified()
+            bd!
+        endif
     endif
 endfunction
 
