@@ -505,12 +505,8 @@ function! <SID>CloseDiffWindows()
         " Ask the user to save if buffer is modified
         call <SID>AskIfModified()
         bd!
-        " User may just have one window opened, we may not need to close
-        " the second diff window
-        if (&diff)
-            call <SID>AskIfModified()
-            bd!
-        endif
+        call <SID>AskIfModified()
+        bd!
     endif
 endfunction
 
