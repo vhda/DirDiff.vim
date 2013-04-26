@@ -616,7 +616,6 @@ function! <SID>HighlightLine()
     setlocal nomodifiable
     setlocal nomodified
     exe (savedLine)
-    redraw
 endfunction
 
 function! <SID>DeHighlightLine()
@@ -630,7 +629,6 @@ function! <SID>DeHighlightLine()
     setlocal nomodifiable
     setlocal nomodified
     exe (savedLine)
-    redraw
 endfunction
 
 " Returns the directory for buffer "A" or "B".  You need to be in the diff
@@ -648,28 +646,46 @@ function! <SID>GetBaseDir(diffName)
     return rtn
 endfunction
 
+
 function! <SID>DirDiffNext()
-    " If the current window is a diff, go down one
-    if (&diff == 1)
-        wincmd j
-    endif
-    " if the current line is <= 6, (within the header range), we go to the
-    " first diff line open it
-    if (line(".") < s:DirDiffFirstDiffLine)
-        exe (s:DirDiffFirstDiffLine)
-        let b:currentDiff = line(".")
-    endif
-    silent! exe (b:currentDiff + 1)
-    call <SID>DirDiffOpen()
+    let saved_lazyredraw = &lazyredraw
+    try
+        set lazyredraw
+        " If the current window is a diff, go down one
+        if (&diff == 1)
+            wincmd j
+        endif
+        " if the current line is <= 6, (within the header range), we go to the
+        " first diff line open it
+        if (line(".") < s:DirDiffFirstDiffLine)
+            exe (s:DirDiffFirstDiffLine)
+            let b:currentDiff = line(".")
+        endif
+        silent! exe (b:currentDiff + 1)
+        call <SID>DirDiffOpen()
+    finally
+        redraw 
+        let &lazyredraw = saved_lazyredraw
+    endtry
+
 endfunction
 
 function! <SID>DirDiffPrev()
-    " If the current window is a diff, go down one
-    if (&diff == 1)
-        wincmd j
-    endif
-    silent! exe (b:currentDiff - 1)
-    call <SID>DirDiffOpen()
+    let saved_lazyredraw = &lazyredraw
+    try
+        set lazyredraw
+
+        " If the current window is a diff, go down one
+        if (&diff == 1)
+            wincmd j
+        endif
+        silent! exe (b:currentDiff - 1)
+        call <SID>DirDiffOpen()
+    finally
+        redraw 
+        let &lazyredraw = saved_lazyredraw
+    endtry
+
 endfunction
 
 " For each line, we can perform a recursive copy or delete to sync up the
