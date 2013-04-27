@@ -203,25 +203,16 @@ command! -nargs=0 DirDiffPrev call <SID>DirDiffPrev ()
 command! -nargs=0 DirDiffUpdate call <SID>DirDiffUpdate ()
 command! -nargs=0 DirDiffQuit call <SID>DirDiffQuit ()
 
-if !hasmapto('<Plug>DirDiffGet')
-  map <unique> <Leader>dg <Plug>DirDiffGet
-endif
-if !hasmapto('<Plug>DirDiffPut')
-  map <unique> <Leader>dp <Plug>DirDiffPut
-endif
-if !hasmapto('<Plug>DirDiffNext')
-  map <unique> <Leader>dj <Plug>DirDiffNext
-endif
-if !hasmapto('<Plug>DirDiffPrev')
-  map <unique> <Leader>dk <Plug>DirDiffPrev
-endif
 
-" Global Maps:
-map <unique> <script> <Plug>DirDiffGet    :diffget<CR>
-map <unique> <script> <Plug>DirDiffPut    :diffput<CR>
-map <unique> <script> <Plug>DirDiffNext    :call <SID>DirDiffNext()<CR>
-map <unique> <script> <Plug>DirDiffPrev    :call <SID>DirDiffPrev()<CR>
-map <unique> <script> <Plug>DirDiffQuit    :call <SID>DirDiffQuit()<CR>
+" Diff Buffer Specific Maps:
+let g:DirDiffNextKey = get(g:, 'DirDiffNextKey', "<Leader>dj")
+let g:DirDiffPrevKey = get(g:, 'DirDiffPrevKey', "<Leader>dk")
+let g:DirDiffQuitKey = get(g:, 'DirDiffQuitKey', "<Leader>dq")
+
+nmap <unique> <script> <Plug>DirDiffNext    :call <SID>DirDiffNext()<CR>
+nmap <unique> <script> <Plug>DirDiffPrev    :call <SID>DirDiffPrev()<CR>
+nmap <unique> <script> <Plug>DirDiffQuit    :call <SID>DirDiffQuit()<CR>
+
 
 " Default Variables.  You can override these in your global variables
 " settings.
@@ -443,7 +434,12 @@ function! <SID>DirDiff(srcA, srcB)
     nnoremap <buffer> x :call <SID>ChangeExcludes()<CR>
     nnoremap <buffer> a :call <SID>ChangeArguments()<CR>
     nnoremap <buffer> i :call <SID>ChangeIgnore()<CR>
+
     nnoremap <buffer> q :call <SID>DirDiffQuit()<CR>
+    nnoremap <buffer> Q :call <SID>DirDiffQuit()<CR>
+
+    nnoremap <buffer> J :call <SID>DirDiffNext()<CR>
+    nnoremap <buffer> K :call <SID>DirDiffPrev()<CR>
 
     nnoremap <buffer> o    :call <SID>DirDiffOpen()<CR>
     nnoremap <buffer> <CR>  :call <SID>DirDiffOpen()<CR>  
@@ -452,6 +448,13 @@ function! <SID>DirDiff(srcA, srcB)
 
     " Open the first diff
     call <SID>DirDiffNext()
+endfunction
+
+
+function! <SID>SetupMapping()
+    exec 'nmap <buffer> ' . g:DirDiffNextKey . ' <Plug>DirDiffNext'
+    exec 'nmap <buffer> ' . g:DirDiffPrevKey . ' <Plug>DirDiffPrev'
+    exec 'nmap <buffer> ' . g:DirDiffQuitKey . ' <Plug>DirDiffQuit'
 endfunction
 
 " Set up syntax highlighing for the diff window
@@ -563,6 +566,7 @@ function! <SID>DirDiffOpen()
         split
         wincmd k
         silent exec "edit ". <SID>EscapeFileName(fileToOpen)
+        call <SID>SetupMapping()
         " Fool the window saying that this is diff
         diffthis
         wincmd j
@@ -581,6 +585,9 @@ function! <SID>DirDiffOpen()
         " silent exec "vert diffsplit ".<SID>EscapeFileName(fileA)
         " let &splitright = saved_splitright
         silent exec "leftabove vert diffsplit ".<SID>EscapeFileName(fileA)
+        call <SID>SetupMapping()
+        wincmd p
+        call <SID>SetupMapping()
 
         " Go back to the diff window
         wincmd j
