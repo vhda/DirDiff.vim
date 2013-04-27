@@ -422,6 +422,7 @@ function! <SID>DirDiff(srcA, srcB)
     setlocal buftype=nowrite
     setlocal bufhidden=delete
     setlocal nowrap
+    setlocal winfixheight
 
     " Set up local key bindings
     " 'n' actually messes with the search next pattern, I think using \dj and
