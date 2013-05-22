@@ -208,16 +208,50 @@ command! -nargs=0 DirDiffNext call <SID>DirDiffNext ()
 command! -nargs=0 DirDiffPrev call <SID>DirDiffPrev ()
 command! -nargs=0 DirDiffUpdate call <SID>DirDiffUpdate ()
 command! -nargs=0 DirDiffQuit call <SID>DirDiffQuit ()
+command! -nargs=0 DirDiffGUI call <SID>DirDiffGUI ()
 
+if !hasmapto('<Plug>DirDiffGet')
+  map <unique> <Leader>dg <Plug>DirDiffGet
+endif
+if !hasmapto('<Plug>DirDiffPut')
+  map <unique> <Leader>dp <Plug>DirDiffPut
+endif
+if !hasmapto('<Plug>DirDiffNext')
+  map <unique> <Leader>dj <Plug>DirDiffNext
+endif
+if !hasmapto('<Plug>DirDiffPrev')
+  map <unique> <Leader>dk <Plug>DirDiffPrev
+endif
 
 " Diff Buffer Specific Maps:
 let g:DirDiffNextKey = get(g:, 'DirDiffNextKey', "<Leader>dj")
 let g:DirDiffPrevKey = get(g:, 'DirDiffPrevKey', "<Leader>dk")
 let g:DirDiffQuitKey = get(g:, 'DirDiffQuitKey', "<Leader>dq")
 
+map <unique> <script> <Plug>DirDiffGet    :diffget<CR>
+map <unique> <script> <Plug>DirDiffPut    :diffput<CR>
 nmap <unique> <script> <Plug>DirDiffNext    :call <SID>DirDiffNext()<CR>
 nmap <unique> <script> <Plug>DirDiffPrev    :call <SID>DirDiffPrev()<CR>
 nmap <unique> <script> <Plug>DirDiffQuit    :call <SID>DirDiffQuit()<CR>
+map <unique> <script> <Plug>DirDiffGUI    :call <SID>DirDiffGUI()<CR>
+
+" menu items
+amenu &Diff.GUI\                   :call <SID>DirDiffGUI ()<CR>
+amenu &Diff.Next\ Change\          ]c
+amenu &Diff.Prev\ Change\          [c
+amenu &Diff.Put\ Change\           :diffput<CR>
+amenu &Diff.Get\ Change\           :diffget<CR>
+amenu &Diff.-SEP1-                 :
+amenu &Diff.Next\ File\            :call <SID>DirDiffNext ()<CR>
+amenu &Diff.Prev\ File\            :call <SID>DirDiffPrev ()<CR>
+amenu &Diff.Sync\ Files\           :call <SID>DirDiffSync ()<CR>
+amenu &Diff.Update\ Diff\          :call <SID>DirDiffUpdate ()<CR>
+amenu &Diff.Quit\                  :call <SID>DirDiffQuit ()<CR>
+
+amenu ToolBar.-DDSep1-             :
+amenu ToolBar.GUI                  :call <SID>DirDiffGUI ()<CR>
+tmenu ToolBar.GUI Start DirDiff with GUI
+
 
 
 " Default Variables.  You can override these in your global variables
@@ -292,6 +326,7 @@ endif
 let s:DirDiffFirstDiffLine = 6
 let s:DirDiffALine = 1
 let s:DirDiffBLine = 2
+let s:DirDiffIsRunning = 0
 
 " -- Variables used in various utilities
 if has("unix")
@@ -345,6 +380,32 @@ endif
 
 
 function! <SID>DirDiff(srcA, srcB)
+    if(s:DirDiffIsRunning == 0)
+        let s:DirDiffIsRunning = 1
+        aunmenu ToolBar.GUI
+        amenu ToolBar.PrevChange           [c
+        tmenu ToolBar.PrevChange Previous Change
+        amenu ToolBar.NextChange           ]c
+        tmenu ToolBar.NextChange Next Change
+        amenu ToolBar.PutChange            :diffput<CR>
+        tmenu ToolBar.PutChange Put Change
+        amenu ToolBar.GetChange            :diffget<CR>
+        tmenu ToolBar.GetChange Get Change
+        amenu ToolBar.-DDSep2-             :
+        amenu ToolBar.PrevFile             :call <SID>DirDiffPrev ()<CR>
+        tmenu ToolBar.PrevFile Previous File
+        amenu ToolBar.NextFile             :call <SID>DirDiffNext ()<CR>
+        tmenu ToolBar.NextFile Next File
+        amenu ToolBar.SyncFiles            :call <SID>DirDiffSync ()<CR>
+        tmenu ToolBar.SyncFiles Sync Files
+        amenu ToolBar.UpdateDiff           :call <SID>DirDiffUpdate ()<CR>
+        tmenu ToolBar.UpdateDiff Update Diff
+        amenu ToolBar.QuitDiff             :call <SID>DirDiffQuit ()<CR>
+        tmenu ToolBar.QuitDiff Quit Diff
+    else
+        echo "DirDiff is running"
+        return
+    endif
     " Setup
     let DirDiffAbsSrcA = fnamemodify(expand(a:srcA, ":p"), ":p")
     let DirDiffAbsSrcB = fnamemodify(expand(a:srcB, ":p"), ":p")
@@ -385,6 +446,7 @@ function! <SID>DirDiff(srcA, srcB)
     let error = <SID>DirDiffExec(cmd, 0)
     if (error == 0)
         redraw | echom "diff found no differences - directories match."
+        let s:DirDiffIsRunning = 0
         return
     endif
     silent exe "edit ".DiffBuffer
@@ -495,10 +557,48 @@ endfun
 
 " Quit the DirDiff mode
 function! <SID>DirDiffQuit()
+    wincmd b
     let in = confirm ("Are you sure you want to quit DirDiff?", "&Yes\n&No", 2)
     if (in == 1)
         call <SID>CloseDiffWindows()
+        aunmenu ToolBar.PrevChange
+        aunmenu ToolBar.NextChange
+        aunmenu ToolBar.PutChange
+        aunmenu ToolBar.GetChange
+        aunmenu ToolBar.-DDSep2-
+        aunmenu ToolBar.PrevFile
+        aunmenu ToolBar.NextFile
+        aunmenu ToolBar.SyncFiles
+        aunmenu ToolBar.UpdateDiff
+        aunmenu ToolBar.QuitDiff
+        amenu ToolBar.GUI           :call <SID>DirDiffGUI ()<CR>
+        tmenu ToolBar.GUI Start DirDiff with GUI
         bd!
+    endif
+    let s:DirDiffIsRunning = 0
+endfun
+
+" Open GUI for DirDiff
+function! <SID>DirDiffGUI()
+    if(s:DirDiffIsRunning == 1)
+        echo "DirDiff is running"
+        return
+    endif
+    let workingDir = $HOME.'/workspace/'
+    let lft = browsedir("Select the left side to compare", workingDir)
+
+    if lft == ""
+       echo "To do a DirDiff, you must choose a directory to start with"
+       return
+    endif
+
+    let rgt = browsedir("Select the right side to compare", workingDir)
+
+    if lft != "" && rgt != ""
+       echo "Comparing " . lft . " & " rgt
+       call <SID>DirDiff(lft, rgt)
+    else
+       echo "User cancelled DirDiff or an invalid directory names were provided"
     endif
 endfun
 
@@ -632,6 +732,7 @@ function! <SID>HighlightLine()
     setlocal nomodifiable
     setlocal nomodified
     exe (savedLine)
+    redraw
 endfunction
 
 function! <SID>DeHighlightLine()
@@ -645,6 +746,7 @@ function! <SID>DeHighlightLine()
     setlocal nomodifiable
     setlocal nomodified
     exe (savedLine)
+    redraw
 endfunction
 
 " Returns the directory for buffer "A" or "B".  You need to be in the diff
@@ -751,6 +853,7 @@ function! <SID>DirDiffSyncHelper(AB, line)
     else
         echo "There is no diff here!"
         " Error
+        let s:DirDiffIsRunning = 0
         return 1
     endif
     if (operation == "Copy")
