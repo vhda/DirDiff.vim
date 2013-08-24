@@ -195,6 +195,12 @@
 "
 " }}}
 
+if exists('g:loaded_DirDiff')
+  finish
+endif
+
+let g:loaded_DirDiff = 1
+
 " Public Interface:
 command! -nargs=* -complete=dir DirDiff call <SID>DirDiff (<f-args>)
 command! -nargs=0 DirDiffOpen call <SID>DirDiffOpen ()
