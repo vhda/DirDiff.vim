@@ -64,6 +64,7 @@
 "
 "   The following comamnds can be used in the Vim diff mode
 "   \dg - Diff get: maps to :diffget<CR>
+"   \do - Synonym with \do, provided for consistency with Vim's built-in diff
 "   \dp - Diff put: maps to :diffput<CR>
 "   \dj - Diff next: (think j for down)
 "   \dk - Diff previous: (think k for up)
@@ -209,19 +210,6 @@ command! -nargs=0 DirDiffPrev call <SID>DirDiffPrev ()
 command! -nargs=0 DirDiffUpdate call <SID>DirDiffUpdate ()
 command! -nargs=0 DirDiffQuit call <SID>DirDiffQuit ()
 command! -nargs=0 DirDiffGUI call <SID>DirDiffGUI ()
-
-if !hasmapto('<Plug>DirDiffGet')
-    map <unique> <Leader>dg <Plug>DirDiffGet
-endif
-if !hasmapto('<Plug>DirDiffPut')
-    map <unique> <Leader>dp <Plug>DirDiffPut
-endif
-if !hasmapto('<Plug>DirDiffNext')
-    map <unique> <Leader>dj <Plug>DirDiffNext
-endif
-if !hasmapto('<Plug>DirDiffPrev')
-    map <unique> <Leader>dk <Plug>DirDiffPrev
-endif
 
 " Diff Buffer Specific Maps:
 let g:DirDiffNextKey = get(g:, 'DirDiffNextKey', "<Leader>dj")
@@ -492,6 +480,21 @@ function! <SID>DirDiff(srcA, srcB)
     setlocal nowrap
 
     " Set up local key bindings
+
+    if !hasmapto('<Plug>DirDiffGet')
+      map <unique> <buffer> <Leader>dg <Plug>DirDiffGet
+      map <unique> <buffer> <Leader>do <Plug>DirDiffGet
+    endif
+    if !hasmapto('<Plug>DirDiffPut')
+      map <unique> <buffer> <Leader>dp <Plug>DirDiffPut
+    endif
+    if !hasmapto('<Plug>DirDiffNext')
+      map <unique> <buffer> <Leader>dj <Plug>DirDiffNext
+    endif
+    if !hasmapto('<Plug>DirDiffPrev')
+      map <unique> <buffer> <Leader>dk <Plug>DirDiffPrev
+    endif
+
     " 'n' actually messes with the search next pattern, I think using \dj and
     " \dk is enough.  Otherwise, use j,k, and enter.
 "    nnoremap <buffer> n :call <SID>DirDiffNext()<CR>
