@@ -308,7 +308,7 @@ endif
 if !exists("g:DirDiffTextOnlyInCenter")
     let g:DirDiffTextOnlyInCenter = ": "
 endif
-" Selects if a buffer is deleted after it is displayed in a diff
+" If true, the buffer is deleted after being displayed in a diff
 if !exists("g:DirDiffBufferDelete")
     let g:DirDiffBufferDelete = 1
 endif
@@ -731,13 +731,13 @@ function! <SID>DirDiffOpen()
         call <SID>DirDiffResize()
         exe (b:currentDiff)
         " Center the line
-        exe ("normal z.")
+        exe ("normal! z.")
     else
         echo "There is no diff at the current line!"
     endif
 
     wincmd k
-    normal gg]c
+    normal! gg]c
 endfunction
 
 " Ask the user to save if the buffer is modified
