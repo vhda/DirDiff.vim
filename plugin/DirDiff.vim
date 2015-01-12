@@ -308,6 +308,10 @@ endif
 if !exists("g:DirDiffTextOnlyInCenter")
     let g:DirDiffTextOnlyInCenter = ": "
 endif
+" Selects if a buffer is deleted after it is displayed in a diff
+if !exists("g:DirDiffBufferDelete")
+    let g:DirDiffBufferDelete = 1
+endif
 
 " Set some script specific variables:
 "
@@ -616,12 +620,22 @@ function! <SID>CloseDiffWindows()
         wincmd k
         " Ask the user to save if buffer is modified
         call <SID>AskIfModified()
-        bd!
+        if g:DirDiffBufferDelete
+            bd!
+        else
+            diffoff
+            q
+        endif
         " User may just have one window opened, we may not need to close
         " the second diff window
         if (&diff)
             call <SID>AskIfModified()
-            bd!
+            if g:DirDiffBufferDelete
+                bd!
+            else
+                diffoff
+                q
+            endif
         endif
     endif
 endfunction
