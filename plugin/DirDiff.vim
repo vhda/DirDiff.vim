@@ -718,7 +718,8 @@ function! <SID>DirDiffOpen()
         echo "There is no diff at the current line!"
     endif
 
-    exec thisWindow.'wincmd w'
+    wincmd p
+    normal gg]c
 endfunction
 
 " Ask the user to save if the buffer is modified
