@@ -679,8 +679,11 @@ function! <SID>DirDiffOpen()
 
     call <SID>CloseDiffWindows()
 
-    " Ensure we're in the right window
-    exec thisWindow.'wincmd w'
+    " Ensure we're in the right window - check if there is any splits before
+    " executing wincmd to avoid error beep
+    if winnr("$") != 1
+       exec thisWindow.'wincmd w'
+    endif
 
     let line = getline(".")
     " Parse the line and see whether it's a "Only in" or "Files Differ"
