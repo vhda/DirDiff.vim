@@ -373,6 +373,7 @@ endif
 
 function! <SID>DirDiff(srcA, srcB)
     if(s:DirDiffIsRunning == 0)
+        tabedit
         let s:DirDiffIsRunning = 1
         aunmenu ToolBar.GUI
         amenu ToolBar.PrevChange           [c
@@ -735,7 +736,7 @@ function! <SID>DirDiffOpen()
         echo "There is no diff at the current line!"
     endif
 
-    wincmd p
+    wincmd k
     normal gg]c
 endfunction
 
