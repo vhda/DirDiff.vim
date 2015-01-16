@@ -480,9 +480,11 @@ function! <SID>DirDiff(srcA, srcB)
     0
     setlocal nomodified
     setlocal nomodifiable
-    setlocal buftype=nowrite
+    setlocal buftype=nofile
     setlocal bufhidden=delete
+    setlocal noswapfile
     setlocal nowrap
+    file DirDiff
 
     " Set up local key bindings
 
