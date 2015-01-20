@@ -318,7 +318,6 @@ endif
 let s:DirDiffFirstDiffLine = 6
 let s:DirDiffALine = 1
 let s:DirDiffBLine = 2
-let s:DirDiffIsRunning = 0
 
 " -- Variables used in various utilities
 if has("unix")
@@ -372,9 +371,8 @@ endif
 
 
 function! <SID>DirDiff(srcA, srcB)
-    if(s:DirDiffIsRunning == 0)
-        tabedit
-        let s:DirDiffIsRunning = 1
+    tabedit
+    if &guioptions =~# 'T'
         aunmenu ToolBar.GUI
         amenu ToolBar.PrevChange           [c
         tmenu ToolBar.PrevChange Previous Change
@@ -395,9 +393,6 @@ function! <SID>DirDiff(srcA, srcB)
         tmenu ToolBar.UpdateDiff Update Diff
         amenu ToolBar.QuitDiff             :call <SID>DirDiffQuit ()<CR>
         tmenu ToolBar.QuitDiff Quit Diff
-    else
-        echo "DirDiff is running"
-        return
     endif
     " Setup
     let DirDiffAbsSrcA = fnamemodify(expand(a:srcA, ":p"), ":p")
@@ -439,7 +434,6 @@ function! <SID>DirDiff(srcA, srcB)
     let error = <SID>DirDiffExec(cmd, 0)
     if (error == 0)
         redraw | echom "diff found no differences - directories match."
-        let s:DirDiffIsRunning = 0
         return
     endif
     silent exe "edit ".DiffBuffer
@@ -570,29 +564,26 @@ function! <SID>DirDiffQuit()
     let in = confirm ("Are you sure you want to quit DirDiff?", "&Yes\n&No", 2)
     if (in == 1)
         call <SID>CloseDiffWindows()
-        aunmenu ToolBar.PrevChange
-        aunmenu ToolBar.NextChange
-        aunmenu ToolBar.PutChange
-        aunmenu ToolBar.GetChange
-        aunmenu ToolBar.-DDSep2-
-        aunmenu ToolBar.PrevFile
-        aunmenu ToolBar.NextFile
-        aunmenu ToolBar.SyncFiles
-        aunmenu ToolBar.UpdateDiff
-        aunmenu ToolBar.QuitDiff
-        amenu ToolBar.GUI           :call <SID>DirDiffGUI ()<CR>
-        tmenu ToolBar.GUI Start DirDiff with GUI
+        if &guioptions =~# 'T'
+            aunmenu ToolBar.PrevChange
+            aunmenu ToolBar.NextChange
+            aunmenu ToolBar.PutChange
+            aunmenu ToolBar.GetChange
+            aunmenu ToolBar.-DDSep2-
+            aunmenu ToolBar.PrevFile
+            aunmenu ToolBar.NextFile
+            aunmenu ToolBar.SyncFiles
+            aunmenu ToolBar.UpdateDiff
+            aunmenu ToolBar.QuitDiff
+            amenu ToolBar.GUI           :call <SID>DirDiffGUI ()<CR>
+            tmenu ToolBar.GUI Start DirDiff with GUI
+        endif
         bd!
     endif
-    let s:DirDiffIsRunning = 0
 endfun
 
 " Open GUI for DirDiff
 function! <SID>DirDiffGUI()
-    if(s:DirDiffIsRunning == 1)
-        echo "DirDiff is running"
-        return
-    endif
     let workingDir = $HOME.'/workspace/'
     let lft = browsedir("Select the left side to compare", workingDir)
 
@@ -884,7 +875,6 @@ function! <SID>DirDiffSyncHelper(AB, line)
     else
         echo "There is no diff here!"
         " Error
-        let s:DirDiffIsRunning = 0
         return 1
     endif
     if (operation == "Copy")
