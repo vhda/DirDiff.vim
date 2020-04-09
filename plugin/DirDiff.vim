@@ -308,13 +308,16 @@ endif
 if !exists("g:DirDiffTextOnlyInCenter")
     let g:DirDiffTextOnlyInCenter = ": "
 endif
+" If true, the buffer is deleted after being displayed in a diff
+if !exists("g:DirDiffBufferDelete")
+    let g:DirDiffBufferDelete = 1
+endif
 
 " Set some script specific variables:
 "
 let s:DirDiffFirstDiffLine = 6
 let s:DirDiffALine = 1
 let s:DirDiffBLine = 2
-let s:DirDiffIsRunning = 0
 
 " -- Variables used in various utilities
 if has("unix")
@@ -368,8 +371,8 @@ endif
 
 
 function! <SID>DirDiff(srcA, srcB)
-    if(s:DirDiffIsRunning == 0)
-        let s:DirDiffIsRunning = 1
+    tabedit
+    if &guioptions =~# 'T'
         aunmenu ToolBar.GUI
         amenu ToolBar.PrevChange           [c
         tmenu ToolBar.PrevChange Previous Change
@@ -390,9 +393,6 @@ function! <SID>DirDiff(srcA, srcB)
         tmenu ToolBar.UpdateDiff Update Diff
         amenu ToolBar.QuitDiff             :call <SID>DirDiffQuit ()<CR>
         tmenu ToolBar.QuitDiff Quit Diff
-    else
-        echo "DirDiff is running"
-        return
     endif
     " Setup
     let DirDiffAbsSrcA = fnamemodify(expand(a:srcA, ":p"), ":p")
@@ -434,7 +434,6 @@ function! <SID>DirDiff(srcA, srcB)
     let error = <SID>DirDiffExec(cmd, 0)
     if (error == 0)
         redraw | echom "diff found no differences - directories match."
-        let s:DirDiffIsRunning = 0
         return
     endif
     silent exe "edit ".DiffBuffer
@@ -475,9 +474,11 @@ function! <SID>DirDiff(srcA, srcB)
     0
     setlocal nomodified
     setlocal nomodifiable
-    setlocal buftype=nowrite
+    setlocal buftype=nofile
     setlocal bufhidden=delete
+    setlocal noswapfile
     setlocal nowrap
+    file DirDiff
 
     " Set up local key bindings
 
@@ -563,29 +564,26 @@ function! <SID>DirDiffQuit()
     let in = confirm ("Are you sure you want to quit DirDiff?", "&Yes\n&No", 2)
     if (in == 1)
         call <SID>CloseDiffWindows()
-        aunmenu ToolBar.PrevChange
-        aunmenu ToolBar.NextChange
-        aunmenu ToolBar.PutChange
-        aunmenu ToolBar.GetChange
-        aunmenu ToolBar.-DDSep2-
-        aunmenu ToolBar.PrevFile
-        aunmenu ToolBar.NextFile
-        aunmenu ToolBar.SyncFiles
-        aunmenu ToolBar.UpdateDiff
-        aunmenu ToolBar.QuitDiff
-        amenu ToolBar.GUI           :call <SID>DirDiffGUI ()<CR>
-        tmenu ToolBar.GUI Start DirDiff with GUI
+        if &guioptions =~# 'T'
+            aunmenu ToolBar.PrevChange
+            aunmenu ToolBar.NextChange
+            aunmenu ToolBar.PutChange
+            aunmenu ToolBar.GetChange
+            aunmenu ToolBar.-DDSep2-
+            aunmenu ToolBar.PrevFile
+            aunmenu ToolBar.NextFile
+            aunmenu ToolBar.SyncFiles
+            aunmenu ToolBar.UpdateDiff
+            aunmenu ToolBar.QuitDiff
+            amenu ToolBar.GUI           :call <SID>DirDiffGUI ()<CR>
+            tmenu ToolBar.GUI Start DirDiff with GUI
+        endif
         bd!
     endif
-    let s:DirDiffIsRunning = 0
 endfun
 
 " Open GUI for DirDiff
 function! <SID>DirDiffGUI()
-    if(s:DirDiffIsRunning == 1)
-        echo "DirDiff is running"
-        return
-    endif
     let workingDir = $HOME.'/workspace/'
     let lft = browsedir("Select the left side to compare", workingDir)
 
@@ -616,12 +614,22 @@ function! <SID>CloseDiffWindows()
         wincmd k
         " Ask the user to save if buffer is modified
         call <SID>AskIfModified()
-        bd!
+        if g:DirDiffBufferDelete
+            bd!
+        else
+            diffoff
+            q
+        endif
         " User may just have one window opened, we may not need to close
         " the second diff window, but do it for fugitive windows
         if (&diff || b:git_dir !=# '')
             call <SID>AskIfModified()
-            bd!
+            if g:DirDiffBufferDelete
+                bd!
+            else
+                diffoff
+                q
+            endif
         endif
     endif
 endfunction
@@ -665,8 +673,11 @@ function! <SID>DirDiffOpen()
 
     call <SID>CloseDiffWindows()
 
-    " Ensure we're in the right window
-    exec thisWindow.'wincmd w'
+    " Ensure we're in the right window - check if there is any splits before
+    " executing wincmd to avoid error beep
+    if winnr("$") != 1
+       exec thisWindow.'wincmd w'
+    endif
 
     let line = getline(".")
     " Parse the line and see whether it's a "Only in" or "Files Differ"
@@ -713,12 +724,13 @@ function! <SID>DirDiffOpen()
         call <SID>DirDiffResize()
         exe (b:currentDiff)
         " Center the line
-        exe ("normal z.")
+        exe ("normal! z.")
     else
         echo "There is no diff at the current line!"
     endif
 
-    exec thisWindow.'wincmd w'
+    wincmd k
+    normal! gg]c
 endfunction
 
 " Ask the user to save if the buffer is modified
@@ -863,7 +875,6 @@ function! <SID>DirDiffSyncHelper(AB, line)
     else
         echo "There is no diff here!"
         " Error
-        let s:DirDiffIsRunning = 0
         return 1
     endif
     if (operation == "Copy")
